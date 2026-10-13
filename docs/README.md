@@ -8,6 +8,7 @@ Index dokumen proyek. Baca sesuai urutan berikut saat onboarding.
 4. [`ml-strategy.md`](ml-strategy.md) — fitur, model, validasi, kebijakan retrain.
 5. [`risk-management.md`](risk-management.md) — sizing, SL/TP, drawdown limit, kill-switch.
 6. [`development-standards.md`](development-standards.md) — branch, commit, testing.
+7. [`bridge-protocol.md`](bridge-protocol.md) — format file MT5 ↔ Python.
 
 ## Status
 
