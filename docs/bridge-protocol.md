@@ -9,11 +9,11 @@ Ditulis EA tiap `PollSeconds` detik (timpa file, bukan append). Dibaca Python ka
 ```json
 {
   "symbol": "EURUSD",
-  "time": "2026-10-14 08:00:00",
+  "time": "2026.10.14 08:00:00",
   "bid": 1.09501,
   "ask": 1.09515,
   "candles": [
-    {"time": "2026-10-14 07:55:00", "open": 1.0950, "high": 1.0952, "low": 1.0948, "close": 1.0951, "volume": 120}
+    {"time": "2026.10.14 07:55:00", "open": 1.0950, "high": 1.0952, "low": 1.0948, "close": 1.0951, "volume": 120}
   ]
 }
 ```
@@ -57,3 +57,7 @@ message=OrderSend failed, retcode=10016
 - EA tidak pernah proses ulang `cmd_<id>.cmd` kalau `done_<id>.cmd` sudah ada — aman dari restart/race, mencegah order dobel.
 - Python tunggu (`poll_interval`) sampai `done_<id>.cmd` muncul, timeout kalau EA tidak jalan/respon.
 - File lama (`cmd_*`/`done_*`) tidak dihapus otomatis — bersihkan manual/berkala kalau folder makin penuh (volume rendah, belum jadi masalah di tahap ini).
+
+## Catatan Waktu (Penting)
+
+Format `time` persis output `TimeToString(TIME_DATE|TIME_SECONDS)` MQL5: `yyyy.mm.dd hh:mi:ss` (titik, bukan dash/ISO-8601). Ini **waktu server broker Exness, BELUM terverifikasi UTC** — offset server berbeda-beda per broker dan belum dicek. Simpan apa adanya dulu; jangan asumsikan UTC sampai offset server dikonfirmasi (lihat `docs/data-contracts.md` § Catatan Waktu).

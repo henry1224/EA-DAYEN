@@ -21,6 +21,16 @@ timeframe
 
 ## Aturan
 
-- Semua timestamp disimpan UTC, konversi timezone di layer presentasi saja.
+- Timestamp disimpan apa adanya dari waktu server broker (format MT5: `yyyy.mm.dd hh:mi:ss`, lihat `docs/bridge-protocol.md`). **Belum dikonversi ke UTC** — offset server Exness belum diverifikasi. Jangan asumsikan UTC sampai ini dicek (known gap, bukan keputusan final).
 - Data mentah (raw) tidak boleh ditimpa — simpan immutable, hasil pembersihan di layer terpisah.
 - Gap data (candle hilang) harus dicatat, bukan di-interpolasi diam-diam.
+
+
+## Skema Penyimpanan Lokal (implementasi `data/store.py`)
+
+```text
+data_store/raw/<SYMBOL>_<TIMEFRAME>.csv        # candle, append-only, header: time,open,high,low,close,volume
+data_store/raw/<SYMBOL>_<TIMEFRAME>.gaps.csv   # gap tercatat, header: from_time,to_time,missing_bars_estimate
+```
+
+Append idempotent terhadap window yang tumpang tindih (polling ulang candle yang sama tidak bikin duplikat). Gap dicatat ke file terpisah, bukan diinterpolasi diam-diam ke file raw.
