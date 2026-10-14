@@ -17,8 +17,16 @@ input int             CandleCount  = 50;
 input int             PollSeconds  = 2;
 input ulong           MagicNumber  = 20261014;
 
-string SnapshotPath() { return BridgeFolder + "\\snapshot.json"; }
-string SnapshotTmp()  { return BridgeFolder + "\\snapshot.tmp"; }
+// Normalisasi supaya BridgeFolder boleh diisi pakai "/" atau "\\" -- keduanya jadi "\\".
+string NormalizedBridgeFolder()
+{
+   string f = BridgeFolder;
+   StringReplace(f, "/", "\\");
+   return f;
+}
+
+string SnapshotPath() { return NormalizedBridgeFolder() + "\\snapshot.json"; }
+string SnapshotTmp()  { return NormalizedBridgeFolder() + "\\snapshot.tmp"; }
 
 int OnInit()
 {
@@ -95,7 +103,7 @@ void WriteSnapshot()
 void ProcessPendingCommands()
 {
    string filename;
-   string mask = BridgeFolder + "\\cmd_*.cmd";
+   string mask = NormalizedBridgeFolder() + "\\cmd_*.cmd";
    long handle = FileFindFirst(mask, filename, FILE_COMMON);
    if(handle == INVALID_HANDLE)
       return; // nothing pending
@@ -114,11 +122,11 @@ void ProcessOneCommand(const string filename)
    StringReplace(cmdId, "cmd_", "");
    StringReplace(cmdId, ".cmd", "");
 
-   string donePath = BridgeFolder + "\\done_" + cmdId + ".cmd";
+   string donePath = NormalizedBridgeFolder() + "\\done_" + cmdId + ".cmd";
    if(FileIsExist(donePath, FILE_COMMON))
       return; // already processed — never redo a trade on a restart/race
 
-   string body = ReadFile(BridgeFolder + "\\" + filename);
+   string body = ReadFile(NormalizedBridgeFolder() + "\\" + filename);
    string action = KvGet(body, "action");
 
    string result;
