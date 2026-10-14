@@ -28,14 +28,15 @@ string NormalizedBridgeFolder()
 string SnapshotPath() { return NormalizedBridgeFolder() + "\\snapshot.json"; }
 string SnapshotTmp()  { return NormalizedBridgeFolder() + "\\snapshot.tmp"; }
 
+datetime lastPoll = 0;
+
 int OnInit()
 {
-   Print("EADAYEN_INIT_CALLED symbol=", TradeSymbol, " folder=", BridgeFolder);
-   if(!EventSetTimer(MathMax(1, PollSeconds)))
-   {
-      Print("EADAYEN_TIMER_FAILED");
-      return INIT_FAILED;
-   }
+   // EventSetTimer dipertahankan sebagai pemicu utama (hemat CPU saat market sepi), tapi
+   // OnTick jadi pemicu cadangan -- beberapa build Wine MT5 mengaku sukses EventSetTimer
+   // tanpa OnTimer benar-benar pernah terpanggil. OnTick jauh lebih fundamental (dipicu
+   // tick harga asli, bukan API timer Windows), jadi tetap jalan walau EventSetTimer cacat.
+   EventSetTimer(MathMax(1, PollSeconds));
    return INIT_SUCCEEDED;
 }
 
@@ -44,8 +45,14 @@ void OnDeinit(const int reason)
    EventKillTimer();
 }
 
-void OnTimer()
+void OnTimer() { MaybePoll(); }
+void OnTick()  { MaybePoll(); }
+
+void MaybePoll()
 {
+   datetime now = TimeLocal();
+   if(now - lastPoll < PollSeconds) return;
+   lastPoll = now;
    WriteSnapshot();
    ProcessPendingCommands();
 }
