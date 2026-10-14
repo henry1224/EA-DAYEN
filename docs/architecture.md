@@ -25,6 +25,7 @@ Broker API (histori + live tick)
 | `risk/` | Hitung lot size, SL/TP, cek max drawdown |
 | `execution/` | Kirim order ke broker API, pantau posisi terbuka |
 | `retrain/` | Job berkala: ambil data baru, retrain, validasi, promosikan model baru |
+| `core/` | Util lintas-modul: decision log immutable, dll |
 
 ## Keputusan Belum Final
 
@@ -65,3 +66,11 @@ Kode strategi/ML/risk manggil `BrokerAdapter` saja — ganti implementasi = gant
 1. Sekarang: develop & jalan di MacBook pakai `FileBridgeAdapter`.
 2. Setelah terbukti jalan baik (hasil shadow/demo memuaskan): pindah ke VPS Windows, ganti ke `NativeMT5Adapter`.
 3. Latency file-bridge (~1-5 detik polling) diterima di fase ini karena bukan strategi scalping ultra-cepat.
+
+## Prinsip: Timeframe Otoritas Tunggal
+
+Satu timeframe ditetapkan sebagai **satu-satunya otoritas entry** (contoh: M5). Timeframe lain boleh dipakai sebagai filter/konteks (trend H1/H4) atau penyempurnaan SL (M1), tapi **tidak boleh memicu entry sendiri**. Dipinjam dari plutoo — mencegah sinyal konflik antar timeframe yang bikin logika sulit di-debug. Timeframe final ditentukan saat rule layer mulai ditulis (lihat `docs/ml-strategy.md`).
+
+## Decision Log (Immutable)
+
+Setiap keputusan (`place_order`/`close_order`) wajib tercatat ke `core/decision_log.py` **sebelum** eksekusi — bukan cuma kalau sukses. Log append-only (JSONL, id dari hash konten), gak bisa diedit diam-diam. Tujuan: kalau EA ambil posisi aneh, bisa direkonstruksi alasannya dari log, bukan nebak dari memori.

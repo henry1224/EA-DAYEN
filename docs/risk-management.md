@@ -21,6 +21,10 @@ Kondisi yang memaksa EA berhenti total (butuh intervensi manual untuk restart):
 - Error beruntun dari broker API (koneksi putus, order gagal berulang).
 - Model retrain gagal validasi (model baru tidak lebih baik dari model aktif — jangan promosikan).
 
+## Gate SHADOW → LIVE
+
+EA selalu mulai di mode **SHADOW** (`execution/shadow_guard.py`): setiap order dicatat ke decision log tapi **tidak pernah** dikirim ke broker asli — strategi/ML/risk code tidak bisa melewati gate ini karena semuanya cuma kenal `BrokerAdapter`, bukan koneksi broker mentah. Pindah ke `LIVE` wajib manual (ubah config), tidak pernah otomatis dari hasil retrain atau performa bagus di SHADOW.
+
 ## Catatan
 
 Detail angka (persentase risk per trade, max drawdown threshold) menyusul setelah backtest awal.
