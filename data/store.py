@@ -7,6 +7,8 @@ idempotent. Missing bars are recorded to a sidecar `.gaps.csv`, never interpolat
 ponytail: CSV + full-file read to find the last timestamp. Fine up to a few hundred thousand
 rows; move to SQLite/parquet when a file gets large enough that read-the-tail matters.
 """
+from __future__ import annotations
+
 import csv
 from datetime import datetime
 from pathlib import Path
