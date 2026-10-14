@@ -30,6 +30,7 @@ string SnapshotTmp()  { return NormalizedBridgeFolder() + "\\snapshot.tmp"; }
 
 int OnInit()
 {
+   Print("EADAYEN_INIT_CALLED symbol=", TradeSymbol, " folder=", BridgeFolder);
    if(!EventSetTimer(MathMax(1, PollSeconds)))
    {
       Print("EADAYEN_TIMER_FAILED");
