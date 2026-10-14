@@ -1,11 +1,11 @@
-#property version   "1.00"
+#property version   "1.01"
 
 // EA-DAYEN execution bridge. Polls a folder (Common\Files\<BridgeFolder>) for plain-text
 // command files written by the Python side, executes them against this MT5 account (real
 // money if this account is live), and writes back a plain-text result file per command.
-// Also writes a market-data snapshot on every timer tick so Python has price/candle data
-// without any native MT5 API access (needed because the official Python `MetaTrader5`
-// package only runs on Windows; this bridges MT5-on-Mac instead).
+// Also writes a market-data snapshot so Python has price/candle data without any native
+// MT5 API access (needed because the official Python `MetaTrader5` package only runs on
+// Windows; this bridges MT5-on-Mac instead).
 //
 // File formats are documented in docs/bridge-protocol.md.
 // Independent project from plutoo — do not reuse this EA's bridge folder for plutoo.
@@ -26,23 +26,41 @@ string NormalizedBridgeFolder()
 }
 
 string SnapshotPath() { return NormalizedBridgeFolder() + "\\snapshot.json"; }
-string SnapshotTmp()  { return NormalizedBridgeFolder() + "\\snapshot.tmp"; }
 
-datetime lastPoll = 0;
+int      effectivePollSeconds = 2;
+datetime lastPoll             = 0;
+bool     everWroteSnapshot    = false;
+int      pollCount            = 0;
 
 int OnInit()
 {
-   // EventSetTimer dipertahankan sebagai pemicu utama (hemat CPU saat market sepi), tapi
-   // OnTick jadi pemicu cadangan -- beberapa build Wine MT5 mengaku sukses EventSetTimer
-   // tanpa OnTimer benar-benar pernah terpanggil. OnTick jauh lebih fundamental (dipicu
-   // tick harga asli, bukan API timer Windows), jadi tetap jalan walau EventSetTimer cacat.
-   EventSetTimer(MathMax(1, PollSeconds));
+   effectivePollSeconds = (int)MathMax(1, PollSeconds);
+
+   if(!FolderCreate(NormalizedBridgeFolder(), FILE_COMMON))
+   {
+      int err = GetLastError();
+      if(err != 4301) // ERR_DIRECTORY_NOT_EMPTY-ish "already exists" -- harmless, folder is there
+         Print("EADAYEN_FOLDER_CREATE_WARN ", NormalizedBridgeFolder(), " err=", err);
+   }
+
+   if(!SymbolSelect(TradeSymbol, true))
+      Print("EADAYEN_SYMBOL_SELECT_FAILED ", TradeSymbol, " err=", GetLastError());
+
+   // EventSetTimer tetap dipasang (hemat CPU saat market sepi tick), tapi OnTick jadi
+   // pemicu utama -- beberapa build Wine MT5 mengaku sukses EventSetTimer tanpa OnTimer
+   // pernah benar-benar terpanggil (diverifikasi langsung 2026-10-14). OnTick dipicu tick
+   // harga asli, bukan API timer Windows, jadi tetap jalan walau EventSetTimer cacat.
+   EventSetTimer(effectivePollSeconds);
+
+   Print("EADAYEN_INIT_OK symbol=", TradeSymbol, " folder=", NormalizedBridgeFolder(),
+         " timeframe=", EnumToString(Timeframe), " pollSeconds=", effectivePollSeconds);
    return INIT_SUCCEEDED;
 }
 
 void OnDeinit(const int reason)
 {
    EventKillTimer();
+   Print("EADAYEN_DEINIT reason=", reason);
 }
 
 void OnTimer() { MaybePoll(); }
@@ -51,10 +69,17 @@ void OnTick()  { MaybePoll(); }
 void MaybePoll()
 {
    datetime now = TimeLocal();
-   if(now - lastPoll < PollSeconds) return;
+   if(now - lastPoll < effectivePollSeconds) return;
    lastPoll = now;
+   pollCount++;
+
    WriteSnapshot();
    ProcessPendingCommands();
+
+   // Heartbeat ringan tiap ~30 detik, bukan tiap poll -- biar kelihatan hidup di panel
+   // Experts tanpa membanjiri log. Dicetak terlepas dari sukses/gagal write.
+   if(pollCount % MathMax(1, 30 / effectivePollSeconds) == 0)
+      Print("EADAYEN_ALIVE poll#", pollCount, " everWrote=", everWroteSnapshot);
 }
 
 //--- Market data snapshot ---------------------------------------------------
@@ -65,7 +90,7 @@ void WriteSnapshot()
    int copied = CopyRates(TradeSymbol, Timeframe, 0, CandleCount, rates);
    if(copied <= 0)
    {
-      Print("EADAYEN_SNAPSHOT_NO_RATES ", TradeSymbol);
+      Print("EADAYEN_SNAPSHOT_NO_RATES ", TradeSymbol, " err=", GetLastError());
       return;
    }
 
@@ -92,18 +117,26 @@ void WriteSnapshot()
    }
    json += "]}";
 
-   int handle = FileOpen(SnapshotTmp(), FILE_WRITE|FILE_TXT|FILE_COMMON|FILE_ANSI);
+   // Tulis langsung ke file final (FILE_WRITE menimpa isi lama) -- bukan tulis-ke-tmp-lalu-
+   // FileMove seperti versi awal. FileMove di build Wine ini perilakunya gak pernah
+   // terverifikasi benar (dicurigai salah satu sumber bug "EA gak pernah nulis apa-apa"
+   // 2026-10-14), dan skenario pembaca baca file "robek" di tengah tulis itu risiko kecil
+   // untuk use case ini (Python cuma baca snapshot harga terbaru, bukan data finansial
+   // kritikal) -- lebih baik andal daripada atomic-tapi-gak-pernah-jalan.
+   int handle = FileOpen(SnapshotPath(), FILE_WRITE|FILE_TXT|FILE_COMMON|FILE_ANSI);
    if(handle == INVALID_HANDLE)
    {
-      Print("EADAYEN_SNAPSHOT_WRITE_FAILED ", GetLastError());
+      Print("EADAYEN_SNAPSHOT_WRITE_FAILED ", SnapshotPath(), " err=", GetLastError());
       return;
    }
    FileWriteString(handle, json);
    FileClose(handle);
 
-   // Atomic-ish swap so Python never reads a half-written file.
-   FileDelete(SnapshotPath(), FILE_COMMON);
-   FileMove(SnapshotTmp(), FILE_COMMON, SnapshotPath(), FILE_COMMON);
+   if(!everWroteSnapshot)
+   {
+      everWroteSnapshot = true;
+      Print("EADAYEN_READY first snapshot written -> ", SnapshotPath());
+   }
 }
 
 //--- Command processing ------------------------------------------------------
@@ -145,6 +178,7 @@ void ProcessOneCommand(const string filename)
    else
       result = "status=error\nmessage=unknown action '" + action + "'\n";
 
+   Print("EADAYEN_COMMAND id=", cmdId, " action=", action, " result_first_line=", StringSubstr(result, 0, 40));
    WriteFile(donePath, result);
 }
 
@@ -158,6 +192,10 @@ string ExecuteOpen(const string body)
 
    if(symbol != TradeSymbol)
       return "status=error\nmessage=EA only trades " + TradeSymbol + "\n";
+   if(side != "BUY" && side != "SELL")
+      return "status=error\nmessage=side must be BUY or SELL, got '" + side + "'\n";
+   if(lot <= 0.0)
+      return "status=error\nmessage=lot must be > 0, got " + DoubleToString(lot, 2) + "\n";
 
    MqlTradeRequest request;
    MqlTradeResult  response;
@@ -183,6 +221,8 @@ string ExecuteOpen(const string body)
 string ExecuteClose(const string body)
 {
    ulong ticket = (ulong)StringToInteger(KvGet(body, "ticket"));
+   if(ticket == 0)
+      return "status=error\nmessage=missing or invalid ticket\n";
    if(!PositionSelectByTicket(ticket))
       return "status=error\nmessage=position " + IntegerToString((long)ticket) + " not found\n";
 
@@ -229,7 +269,7 @@ void WriteFile(const string path, const string content)
    int handle = FileOpen(path, FILE_WRITE|FILE_TXT|FILE_COMMON|FILE_ANSI);
    if(handle == INVALID_HANDLE)
    {
-      Print("EADAYEN_WRITE_FAILED ", path, " ", GetLastError());
+      Print("EADAYEN_WRITE_FAILED ", path, " err=", GetLastError());
       return;
    }
    FileWriteString(handle, content);
