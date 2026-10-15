@@ -30,11 +30,26 @@ class FileBridgeAdapter(BrokerAdapter):
         self.poll_interval = poll_interval
         self.timeout = timeout
 
-    def _snapshot(self, symbol: str) -> dict:
+    def _snapshot(self, symbol: str, retries: int = 5, retry_delay: float = 0.1) -> dict:
         path = self.dir / "snapshot.json"
         if not path.exists():
             raise BridgeError(f"no snapshot yet at {path} — is the MT5 EA running?")
-        snap = json.loads(path.read_text())
+
+        # The MQL5 side writes with FileOpen(FILE_WRITE), which truncates the file before
+        # the new content lands -- a read that lands in that gap sees 0 bytes / a partial
+        # JSON document. Retry a few times instead of crashing the whole poller on what's
+        # normally a sub-10ms race (confirmed happening in practice 2026-10-15).
+        last_error = None
+        for attempt in range(retries):
+            try:
+                snap = json.loads(path.read_text())
+                break
+            except json.JSONDecodeError as e:
+                last_error = e
+                time.sleep(retry_delay)
+        else:
+            raise BridgeError(f"snapshot at {path} unreadable after {retries} retries: {last_error}")
+
         if snap["symbol"] != symbol:
             raise BridgeError(f"bridge is feeding {snap['symbol']}, not {symbol}")
         return snap

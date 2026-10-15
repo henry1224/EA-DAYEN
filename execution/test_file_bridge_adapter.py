@@ -73,8 +73,47 @@ def test_place_order_timeout():
             pass
 
 
+def test_survives_transient_empty_read_during_concurrent_write():
+    """Reproduces the real crash from 2026-10-15: the MQL5 EA truncates snapshot.json
+    (FileOpen FILE_WRITE) before writing new content, so a read landing in that gap sees
+    an empty/partial file. The adapter must retry, not propagate JSONDecodeError."""
+    with tempfile.TemporaryDirectory() as d:
+        snap_path = Path(d, "snapshot.json")
+        good_snap = json.dumps({
+            "symbol": "EURUSD", "time": "2026-10-15 00:00:00", "bid": 1.1, "ask": 1.1002,
+            "candles": [{"time": "2026-10-15 00:00:00", "open": 1.1, "high": 1.1, "low": 1.1, "close": 1.1, "volume": 1}],
+        })
+        snap_path.write_text(good_snap)
+        # Simulate the EA's truncate-then-write race: empty the file right before the read.
+        snap_path.write_text("")
+
+        def rewrite_after_delay():
+            time.sleep(0.15)
+            snap_path.write_text(good_snap)
+
+        t = threading.Thread(target=rewrite_after_delay)
+        t.start()
+        adapter = FileBridgeAdapter(d)
+        bid, ask = adapter.get_price("EURUSD")
+        t.join()
+        assert (bid, ask) == (1.1, 1.1002)
+
+
+def test_gives_up_cleanly_if_file_never_recovers():
+    with tempfile.TemporaryDirectory() as d:
+        Path(d, "snapshot.json").write_text("")  # permanently empty/corrupt
+        adapter = FileBridgeAdapter(d)
+        try:
+            adapter.get_price("EURUSD")
+            raise AssertionError("should have raised BridgeError, not crashed with JSONDecodeError")
+        except BridgeError:
+            pass
+
+
 if __name__ == "__main__":
     test_get_price_and_candles()
     test_place_order_roundtrip()
     test_place_order_timeout()
+    test_survives_transient_empty_read_during_concurrent_write()
+    test_gives_up_cleanly_if_file_never_recovers()
     print("OK — all FileBridgeAdapter self-checks passed")
