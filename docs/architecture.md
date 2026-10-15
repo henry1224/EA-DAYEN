@@ -36,7 +36,7 @@ Broker API (histori + live tick)
 | `execution/` (broker adapter) | ✅ Jalan | `execution/broker_base.py`, `execution/file_bridge_adapter.py` |
 | `execution/` (shadow gate) | ✅ Jalan | `execution/shadow_guard.py` |
 | `core/` (decision log) | ✅ Jalan | `core/decision_log.py` |
-| `model/` | ❌ Belum ada | — |
+| `model/` | 🟡 Baseline jalan | `model/baseline.py` — GradientBoostingClassifier, belum pernah dilatih di data real (belum ada data terkumpul, lihat `status.md`) |
 | `rules/` | ❌ Belum ada | — |
 | `risk/` | ❌ Belum ada | — |
 | `retrain/` | ❌ Belum ada | — |
@@ -52,8 +52,13 @@ Broker API (histori + live tick)
 
 ## Keputusan Belum Final
 
-- Model ML spesifik — mulai dari baseline sederhana (gradient boosting), eksperimen lanjut setelah baseline jalan.
 - Broker API buat sumber data independen (kalau nanti perlu validasi silang) — belum perlu sekarang, satu sumber (Exness MT5) cukup untuk fase ini.
+
+## Keputusan: Model ML Baseline
+
+- **Library**: scikit-learn (`GradientBoostingClassifier`) — dipilih di atas XGBoost/LightGBM buat baseline karena install ringan (wheel murni, gak butuh compiler native) dan data saat ini masih kecil; upgrade ke XGBoost/LightGBM dipertimbangkan ulang kalau skala data beneran butuh (lihat `model/baseline.py` § ponytail).
+- **Dependency management**: `.venv/` lokal (gitignored) + `requirements.txt` dicommit — repo ini zero-dependency sampai sekarang, jadi butuh pemisahan eksplisit dari Python sistem. Setup: `python3 -m venv .venv && ./.venv/bin/pip install -r requirements.txt`.
+- **Target prediksi**: klasifikasi 3 kelas (UP/DOWN/SIDEWAYS), bukan regresi — lebih gampang map langsung ke keputusan BUY/SELL/WAIT di `rules/` nanti.
 
 ## Keputusan: Broker & Eksekusi (Exness via MT5)
 

@@ -6,8 +6,8 @@ ML (supervised) + rule-based filter + auto-retrain — bukan reinforcement learn
 
 ## Model
 
-- Baseline: gradient boosting (XGBoost/LightGBM) — prediksi probabilitas arah harga atau expected return jangka pendek.
-- Target prediksi: belum final — kandidat (a) klasifikasi arah candle berikutnya (naik/turun/sideways dengan threshold), (b) regresi expected return N-candle ke depan. Dipilih setelah lihat distribusi data real, bukan ditebak sekarang.
+- Baseline: gradient boosting — **scikit-learn** `GradientBoostingClassifier` (bukan XGBoost/LightGBM, lihat `architecture.md` § Keputusan: Model ML Baseline), klasifikasi arah candle berikutnya (UP/DOWN/SIDEWAYS). Implementasi: `model/baseline.py`.
+- Target prediksi: **final — klasifikasi arah** candle berikutnya (UP/DOWN/SIDEWAYS), threshold berbasis ATR candle tsb (bukan pip fixed, lihat `model/baseline.py`). Dipilih di atas regresi return karena lebih gampang map langsung ke keputusan BUY/SELL/WAIT di `rules/`. Threshold ATR-multiplier (default 0.25) masih tebakan awal, belum divalidasi backtest — lihat § Gate Promosi.
 
 ## Fitur (implementasi `features/indicators.py`)
 

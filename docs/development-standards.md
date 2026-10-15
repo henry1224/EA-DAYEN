@@ -13,6 +13,12 @@
 - Konvensi nyata yang sudah dipakai: tiap modul `foo.py` punya `test_foo.py` sejajar, assert-based (bukan framework), dijalankan `python3 -m <package>.test_<module>` dari root repo. Lihat `core/test_decision_log.py`, `execution/test_shadow_guard.py`, `features/test_indicators.py` sebagai contoh.
 - **Python 3.9 compatibility**: Mac ini pakai Python 3.9 (`python3 --version` buat cek). Sintaks union modern (`str | None`) butuh `from __future__ import annotations` di baris atas file — tanpa itu `ImportError` saat runtime (pernah kejadian di `data/store.py`, lihat riwayat commit). Cek dulu sebelum pakai sintaks tipe baru.
 
+## Dependency Python
+
+- Default: **stdlib only** — baru tambah dependency kalau beneran gak bisa (contoh: gradient boosting beneran butuh library, bukan cuma "lebih enak pakai library").
+- Kalau butuh dependency: `.venv/` lokal (gitignored, jangan install ke Python sistem — campur antar project) + `requirements.txt` dicommit (`pip freeze`, bukan nulis manual).
+- Setup di mesin baru: `python3 -m venv .venv && ./.venv/bin/pip install -r requirements.txt`. Jalankan modul lewat `./.venv/bin/python3 -m <package>.<module>`, bukan `python3` sistem.
+
 ## MQL5 (EA-DAYEN bridge)
 
 - Edit `mql5/EADayenBridge.mq5` di repo ini — jangan edit langsung file di folder Experts MT5 (gampang lupa sync balik ke git).

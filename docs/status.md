@@ -12,7 +12,7 @@ Dashboard ringkas — bukan proses approval berlapis kayak plutoo (proyek solo, 
 |---|---|---|
 | 1. Data pipeline | ✅ Selesai | `data/store.py`, `data/poll_bridge.py`, 8 simbol live sejak 2026-10-15 |
 | 2. Feature engineering | 🟡 Baseline selesai | `features/indicators.py` (SMA/EMA/RSI/ATR), self-check lolos, jalan di data real XAUUSD |
-| 3. Model ML | ❌ Belum mulai | — |
+| 3. Model ML | 🟡 Baseline kode siap, belum dilatih di data real | `model/baseline.py` (GradientBoostingClassifier, scikit-learn), self-check lolos — **belum pernah dilatih**, `data_store/` gak ada di mesin ini (lihat Insiden) |
 | 4. Rule layer | ❌ Belum mulai | — |
 | 5. Eksekusi order otomatis | 🟡 Infra siap, belum dipakai | `execution/broker_base.py`, `execution/file_bridge_adapter.py` — belum ada pemanggil dari logika trading nyata |
 | 6. Risk & position sizing | ❌ Belum mulai (kerangka formula ada di `risk-management.md`) | — |
@@ -35,13 +35,15 @@ Dashboard ringkas — bukan proses approval berlapis kayak plutoo (proyek solo, 
 - **2026-10-15**: `data_store/` sempat gak sengaja ke-commit ke git — sudah di-gitignore dan dikeluarkan dari tracking.
 - **2026-10-15**: Poller crash kalau baca `snapshot.json` pas lagi ditimpa EA (race condition, `FileOpen(FILE_WRITE)` truncate dulu baru tulis) — fix: retry baca di `file_bridge_adapter.py`.
 - **2026-10-15**: Threshold "stale" di dashboard (60 detik) salah — raw CSV cuma update pas candle beneran tutup (~5 menit buat M5), bukan tiap poll. Bikin alarm palsu. Fix: threshold berbasis timeframe.
+- **2026-10-15**: Repo di-clone ulang di mesin ini (Mac lain/sesi baru) — `data_store/` **gak ada sama sekali** (gitignored, gak ikut clone, dan poller belum pernah dijalankan di mesin ini). Klaim "8 simbol live" di atas berlaku buat mesin yang jalanin poller, bukan otomatis berlaku di mesin lain manapun repo ini di-clone — cek `ps aux | grep poll_bridge` dan `ls data_store/` sebelum asumsi data ada.
 
 ## Berikutnya (urutan disarankan, bukan jadwal pasti)
 
-1. Biarkan data poller jalan beberapa hari — kumpulkan histori cukup buat training & backtest yang bermakna.
-2. Bangun `model/` baseline (gradient boosting) + protokol backtest (manifest hash, time-split — sudah terdokumentasi di `ml-strategy.md`, belum diimplementasi).
-3. Bangun `rules/` (filter sinyal ML).
-4. Bangun `risk/` (position sizing dari formula di `risk-management.md`).
-5. Sambungkan semuanya ke `execution/` lewat `ShadowGuard` — mulai SHADOW, bukan LIVE.
-6. **Tambah panel posisi/order terbuka ke dashboard** — ditunda sampai poin 5 jalan (sebelum itu gak ada order dari sistem buat ditampilkan). Perlu perluas bridge (snapshot akun + posisi), bukan cuma data harga.
-7. Evaluasi hasil SHADOW terhadap kriteria di `prd.md` § Kriteria Keluar Fase SHADOW sebelum pertimbangkan LIVE.
+1. **Jalankan `data/poll_bridge.py` di mesin yang ada MT5+EA attached** (lihat `local-setup.md`) — mesin ini belum punya `data_store/` sama sekali, jadi belum ada apapun buat dilatih.
+2. Biarkan poller jalan beberapa hari — kumpulkan histori cukup buat training & backtest yang bermakna.
+3. Latih `model/baseline.py` di data real (`python3 -m model.baseline --symbol <SIMBOL> --timeframe M5`) + protokol backtest (manifest hash, time-split — terdokumentasi di `ml-strategy.md`, belum diimplementasi).
+5. Bangun `rules/` (filter sinyal ML).
+6. Bangun `risk/` (position sizing dari formula di `risk-management.md`).
+7. Sambungkan semuanya ke `execution/` lewat `ShadowGuard` — mulai SHADOW, bukan LIVE.
+8. **Tambah panel posisi/order terbuka ke dashboard** — ditunda sampai poin 7 jalan (sebelum itu gak ada order dari sistem buat ditampilkan). Perlu perluas bridge (snapshot akun + posisi), bukan cuma data harga.
+9. Evaluasi hasil SHADOW terhadap kriteria di `prd.md` § Kriteria Keluar Fase SHADOW sebelum pertimbangkan LIVE.
