@@ -8,7 +8,7 @@ MT5 di Mac ini terpasang sebagai app Wine-wrapped (`/Applications/MetaTrader 5.a
 
 ```text
 Experts    : ~/Library/Application Support/net.metaquotes.wine.metatrader5/drive_c/Program Files/MetaTrader 5/MQL5/Experts/EA-DAYEN/
-Common Files: ~/Library/Application Support/net.metaquotes.wine.metatrader5/drive_c/users/henrywilliam/AppData/Roaming/MetaQuotes/Terminal/Common/Files/EA-DAYEN/
+Common Files: ~/Library/Application Support/net.metaquotes.wine.metatrader5/drive_c/users/user/AppData/Roaming/MetaQuotes/Terminal/Common/Files/EA-DAYEN/
 ```
 
 `EADayenBridge.mq5` sudah disalin ke folder Experts di atas. Folder bridge per simbol di Common Files sudah dibuat.
@@ -40,7 +40,7 @@ Dua langkah ini wajib manual di GUI MT5 — bukan keterbatasan skrip, tapi meman
 ## Jalankan Data Poller (satu proses per simbol)
 
 ```bash
-COMMON="$HOME/Library/Application Support/net.metaquotes.wine.metatrader5/drive_c/users/henrywilliam/AppData/Roaming/MetaQuotes/Terminal/Common/Files/EA-DAYEN"
+COMMON="$HOME/Library/Application Support/net.metaquotes.wine.metatrader5/drive_c/users/user/AppData/Roaming/MetaQuotes/Terminal/Common/Files/EA-DAYEN"
 
 for SYM in XAUUSD EURUSD GBPUSD USDJPY USDCHF AUDUSD USDCAD NZDUSD; do
   python3 -m data.poll_bridge --bridge-dir "$COMMON/$SYM" --symbol "$SYM" --timeframe M5 &
@@ -76,3 +76,10 @@ MT5 punya fitur command-line `/config:file.ini` buat auto-attach **1 EA ke 1 cha
 Alternatif lain (manipulasi file "profile" MT5 buat simulasikan 8 chart+EA sekaligus) formatnya **sebagian biner, gak didokumentasikan resmi** — coba utak-atik itu berisiko bikin terminal gagal buka/corrupt profile, pada terminal yang sama sedang terhubung ke akun (walau demo). Risikonya lebih besar dari manfaatnya dibanding drag EA manual 8x (~2 menit kerja).
 
 **Catatan baik:** log terminal konfirmasi akun yang terhubung sekarang server `Exness-MT5Trial8` — **demo**, bukan akun real. Aman buat eksperimen di tahap ini.
+
+
+## Koreksi Path (2026-10-15)
+
+Wine prefix app ini ternyata punya **dua** folder user Windows: `drive_c/users/henrywilliam/` dan `drive_c/users/user/`. Proses MT5 yang jalan beneran pakai **`user`** (bukan nama akun Mac kamu). Semua path Common Files di dokumen ini sudah dikoreksi ke `drive_c/users/user/...` — kalau nemu referensi ke `drive_c/users/henrywilliam/...` di tempat lain, itu salah/usang.
+
+Sempat salah cek folder (`henrywilliam`) berjam-jam sebelum ketauan — EA-nya sebenarnya kemungkinan sudah jalan lebih awal dari yang dikira, cuma selalu dicek ke folder kosong yang salah.
