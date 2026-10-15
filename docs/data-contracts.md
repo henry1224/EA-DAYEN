@@ -2,12 +2,13 @@
 
 ## Sumber Data
 
-- Broker API (TBD: ccxt / Interactive Brokers / OANDA) — histori candle + live tick.
-- Instrumen: forex major pairs (EUR/USD, GBP/USD, USD/JPY, dll — daftar final menyusul).
+- **Broker**: Exness (MT5), lewat file-bridge lokal (lihat `bridge-protocol.md`) — bukan ccxt/IB/OANDA, itu opsi lama sebelum keputusan broker final (lihat `architecture.md` § Keputusan Final).
+- **Instrumen** (8, semua live sejak 2026-10-15): XAUUSD, EURUSD, GBPUSD, USDJPY, USDCHF, AUDUSD, USDCAD, NZDUSD.
+- **Timeframe**: M5.
 
 ## Format Penyimpanan
 
-Belum final. Kandidat: parquet (efisien untuk time-series besar) atau CSV (debug-friendly, mulai dari ini dulu karena lebih simpel).
+**CSV** — final untuk fase ini (bukan lagi kandidat). Alasan: data masih kecil (ribuan baris per simbol), CSV cukup cepat dan jauh lebih gampang di-debug (buka langsung, diff-able di git kalau perlu). Parquet dipertimbangkan ulang kalau volume data beneran jadi bottleneck nyata — belum terjadi.
 
 ## Skema Minimal (candle)
 
@@ -34,3 +35,14 @@ data_store/raw/<SYMBOL>_<TIMEFRAME>.gaps.csv   # gap tercatat, header: from_time
 ```
 
 Append idempotent terhadap window yang tumpang tindih (polling ulang candle yang sama tidak bikin duplikat). Gap dicatat ke file terpisah, bukan diinterpolasi diam-diam ke file raw.
+
+## Skema Fitur (implementasi `features/build_features.py`)
+
+```text
+data_store/features/<SYMBOL>_<TIMEFRAME>.csv
+header: time,open,high,low,close,volume,sma_20,ema_20,rsi_14,atr_14
+```
+
+- Satu baris output per baris input (`raw/`) — gak ada baris dibuang/ditambah.
+- Kolom indikator kosong (bukan 0, bukan interpolasi) kalau histori belum cukup buat periode-nya (contoh: `sma_20` kosong di 19 baris pertama) — konsisten dengan aturan "jangan mengarang data" di atas.
+- Daftar indikator akan nambah seiring `ml-strategy.md` berkembang (MACD, Bollinger Bands, sesi waktu, dll) — tambah kolom baru, jangan ubah makna kolom lama (breaking change ke konsumen yang sudah ada).

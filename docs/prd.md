@@ -33,6 +33,32 @@ Plutoo adalah terminal decision-support dengan prinsip inti: ML tidak boleh meng
 6. Risk & position sizing.
 7. Auto-retrain / self-improvement loop.
 
-## Status
+## Posisi dalam Quant Trading
 
-Layer 1-7 belum ada — proyek baru di tahap dokumentasi dan scaffold.
+Quant trading = keputusan trading dari model/aturan matematis yang dieksekusi sistematis, bukan penilaian manual trader. EA-DAYEN **menuju** quant trading penuh, tapi belum sampai di sana:
+
+| Syarat | Status |
+|---|---|
+| Data sistematis (bukan baca chart manual) | Selesai |
+| Fitur kuantitatif (indikator teknikal) | Selesai (baseline) |
+| Model/aturan penghasil sinyal BUY/SELL/WAIT | Belum ada — "otak" sistem, prioritas berikutnya |
+| Eksekusi otomatis dari sinyal | Infra siap (`BrokerAdapter`), belum ada pemanggil dari logika trading |
+| Risk sizing dari rule matematis | Belum ada |
+
+Sampai `model/` dan `rules/` menghasilkan sinyal nyata yang dipakai `execution/`, EA-DAYEN masih fase fondasi data — belum jadi sistem quant trading yang utuh.
+
+## Kriteria Keluar Fase SHADOW (menuju LIVE)
+
+Belum final, tapi arah kriterianya (detail angka menyusul setelah data & backtest cukup):
+
+- Backtest out-of-sample (OOS) + holdout menunjukkan expectancy positif setelah biaya transaksi (spread/slippage/komisi) disertakan — bukan cuma gross profit.
+- Shadow-trading (sinyal nyata, eksekusi bayangan) berjalan minimal beberapa minggu tanpa anomali (sinyal masuk akal, risk sizing benar, gak ada crash/silent failure).
+- Max drawdown shadow dalam batas yang sudah ditetapkan `risk-management.md` sebelum shadow dimulai (bukan ditentukan setelah lihat hasil — mencegah bias "pindahin garis setelah tau skornya").
+- Review manual sebelum switch `SHADOW` → `LIVE` (lihat `risk-management.md` § Gate SHADOW → LIVE) — tidak pernah otomatis.
+
+## Status Implementasi
+
+Lihat [`status.md`](status.md) untuk rincian per komponen — ringkasan per 2026-10-15:
+
+- **Selesai**: data pipeline (bridge MT5↔Python, 8 simbol live), feature engineering baseline (SMA/EMA/RSI/ATR).
+- **Belum ada**: model ML, rule layer, risk/position sizing, auto-retrain loop, pemanggil eksekusi dari logika trading nyata.

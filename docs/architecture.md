@@ -27,10 +27,33 @@ Broker API (histori + live tick)
 | `retrain/` | Job berkala: ambil data baru, retrain, validasi, promosikan model baru |
 | `core/` | Util lintas-modul: decision log immutable, dll |
 
+## Status Modul
+
+| Modul | Status | File |
+|---|---|---|
+| `data/` | ✅ Jalan | `data/store.py`, `data/poll_bridge.py` |
+| `features/` | ✅ Baseline jalan | `features/indicators.py`, `features/build_features.py` |
+| `execution/` (broker adapter) | ✅ Jalan | `execution/broker_base.py`, `execution/file_bridge_adapter.py` |
+| `execution/` (shadow gate) | ✅ Jalan | `execution/shadow_guard.py` |
+| `core/` (decision log) | ✅ Jalan | `core/decision_log.py` |
+| `model/` | ❌ Belum ada | — |
+| `rules/` | ❌ Belum ada | — |
+| `risk/` | ❌ Belum ada | — |
+| `retrain/` | ❌ Belum ada | — |
+
+"Jalan" berarti ada kode + self-check lolos, bukan berarti dipakai di alur trading nyata — belum ada `model/`/`rules/` yang memanggil `execution/`, jadi belum ada sinyal trading sungguhan yang dieksekusi (lihat `prd.md` § Posisi dalam Quant Trading).
+
+## Keputusan Final
+
+- **Broker**: Exness (MT5), eksekusi real (lihat § Keputusan: Broker & Eksekusi di bawah).
+- **Simbol aktif**: XAUUSD + 7 major pairs (EURUSD, GBPUSD, USDJPY, USDCHF, AUDUSD, USDCAD, NZDUSD).
+- **Timeframe data**: M5.
+- **Format penyimpanan**: CSV (lihat `data-contracts.md`) — parquet dipertimbangkan nanti kalau volume data jadi masalah nyata, bukan sebelum itu.
+
 ## Keputusan Belum Final
 
-- Broker API spesifik (ccxt/IB/OANDA) — menunggu keputusan user.
 - Model ML spesifik — mulai dari baseline sederhana (gradient boosting), eksperimen lanjut setelah baseline jalan.
+- Broker API buat sumber data independen (kalau nanti perlu validasi silang) — belum perlu sekarang, satu sumber (Exness MT5) cukup untuk fase ini.
 
 ## Keputusan: Broker & Eksekusi (Exness via MT5)
 

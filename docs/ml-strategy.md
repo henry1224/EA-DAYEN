@@ -7,7 +7,39 @@ ML (supervised) + rule-based filter + auto-retrain — bukan reinforcement learn
 ## Model
 
 - Baseline: gradient boosting (XGBoost/LightGBM) — prediksi probabilitas arah harga atau expected return jangka pendek.
-- Fitur dari indikator teknikal (MA, RSI, MACD, volatilitas, dll) — daftar final menyusul setelah data pipeline jalan.
+- Target prediksi: belum final — kandidat (a) klasifikasi arah candle berikutnya (naik/turun/sideways dengan threshold), (b) regresi expected return N-candle ke depan. Dipilih setelah lihat distribusi data real, bukan ditebak sekarang.
+
+## Fitur (implementasi `features/indicators.py`)
+
+**Sudah ada** (stdlib, teruji):
+- `sma_20`, `ema_20` — trend jangka pendek.
+- `rsi_14` — momentum/overbought-oversold.
+- `atr_14` — volatilitas, dasar buat SL/position sizing nanti.
+
+**Kandidat tambahan** (belum dibangun, urutan bukan prioritas pasti):
+- MACD (trend + momentum gabungan).
+- Bollinger Bands (volatilitas relatif terhadap rata-rata).
+- Fitur waktu (jam sesi trading, hari dalam minggu) — relevan karena `rules/` rencana filter jam trading.
+- Fitur multi-timeframe (trend H1/H4 sebagai konteks) — konsisten dengan prinsip "Timeframe Otoritas Tunggal" di `architecture.md`, dipakai sebagai filter bukan pemicu entry.
+
+## Siklus Hidup Model (rencana, belum diimplementasi)
+
+```text
+Train (data historis)
+→ Validasi walk-forward (lihat § Validasi di bawah)
+→ Bandingkan ke model aktif (baseline atau versi sebelumnya)
+→ Lolos gate promosi? → Promosikan jadi model aktif
+→ Gagal gate? → Tetap pakai model lama, catat kenapa gagal
+→ Jalan di SHADOW (lihat risk-management.md)
+→ Retrain terjadwal (lihat § Kebijakan Retrain)
+```
+
+### Gate Promosi (kerangka, angka final menyusul)
+
+Model baru **tidak otomatis menggantikan** model aktif hanya karena lebih kompleks atau akurasi training lebih tinggi. Harus lolos semua:
+- Performa OOS (out-of-sample) tidak lebih buruk dari model aktif pada metrik utama (bukan cuma akurasi — lihat § Validasi).
+- Tidak overfit — gap performa training vs OOS dalam batas wajar (threshold final menyusul setelah ada beberapa model buat dibandingkan).
+- Lolos walk-forward di multi-window, bukan cuma 1 split.
 
 ## Rule Layer
 
