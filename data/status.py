@@ -18,10 +18,21 @@ from datetime import datetime
 from pathlib import Path
 
 SYMBOLS = ["XAUUSD", "EURUSD", "GBPUSD", "USDJPY", "USDCHF", "AUDUSD", "USDCAD", "NZDUSD"]
-STALE_AFTER = 60  # seconds -- generous vs the 15s poll interval actually used
+
+# A raw CSV only gets a new row (and a new mtime) when a new candle actually closes -- NOT
+# every poll cycle. For M5 that means the file can legitimately sit untouched for ~5 minutes
+# between updates even while the poller is perfectly healthy. "Stale" has to be judged
+# against the candle period, not the poll interval -- using a flat 60s here originally
+# produced false STALE alarms every cycle (caught 2026-10-15). Same TIMEFRAME_SECONDS table
+# poll_bridge.py uses for gap detection, so both stay consistent.
+TIMEFRAME_SECONDS = {
+    "M1": 60, "M5": 300, "M15": 900, "M30": 1800,
+    "H1": 3600, "H4": 14400, "D1": 86400,
+}
 
 
 def _symbol_status(data_dir: str, symbol: str, timeframe: str) -> dict:
+    stale_after = TIMEFRAME_SECONDS.get(timeframe, 300) * 1.5
     raw_path = Path(data_dir, "raw", f"{symbol}_{timeframe}.csv")
     gaps_path = Path(data_dir, "raw", f"{symbol}_{timeframe}.gaps.csv")
 
@@ -39,7 +50,7 @@ def _symbol_status(data_dir: str, symbol: str, timeframe: str) -> dict:
         with gaps_path.open() as f:
             gaps = sum(1 for _ in csv.DictReader(f))
 
-    state = "live" if age < STALE_AFTER else "stale"
+    state = "live" if age < stale_after else "stale"
     return {"symbol": symbol, "state": state, "age": age, "rows": len(rows),
             "last_time": last_time, "gaps": gaps}
 
@@ -52,7 +63,7 @@ def render_html(data_dir: str, timeframe: str = "M5") -> str:
         if age is None:
             return "-"
         if age < 90:
-            return f"{int(age)}d lalu"
+            return f"{int(age)}s lalu"
         return f"{int(age / 60)}m lalu"
 
     body_rows = "\n".join(
