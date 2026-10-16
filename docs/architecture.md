@@ -36,6 +36,7 @@ Broker API (histori + live tick)
 | `execution/` (broker adapter) | ✅ Jalan | `execution/broker_base.py`, `execution/file_bridge_adapter.py` |
 | `execution/` (shadow gate) | ✅ Jalan | `execution/shadow_guard.py` |
 | `core/` (decision log) | ✅ Jalan | `core/decision_log.py` |
+| `core/` (pipeline/orchestrator) | ✅ Jalan (wiring, bukan sinyal nyata) | `core/pipeline.py` — nyambungin rules→risk→ShadowGuard, dites pakai direction sintetis (model belum terlatih) |
 | `model/` | 🟡 Baseline jalan | `model/baseline.py` — GradientBoostingClassifier, belum pernah dilatih di data real (belum ada data terkumpul, lihat `status.md`) |
 | `rules/` | 🟡 Baseline jalan (1 dari 3 filter) | `rules/signal_filter.py` — jam trading jalan, trend & news filter belum (butuh data multi-timeframe & news calendar yang belum ada, lihat `ml-strategy.md` § Rule Layer) |
 | `risk/` | 🟡 Position sizing jalan | `risk/position_sizing.py` — formula sesuai `risk-management.md`, self-check lolos; `pip_value_per_lot` sengaja jadi parameter wajib (lihat § ponytail di file), belum di-lookup dari broker |

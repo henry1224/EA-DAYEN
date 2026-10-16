@@ -14,7 +14,7 @@ Dashboard ringkas — bukan proses approval berlapis kayak plutoo (proyek solo, 
 | 2. Feature engineering | 🟡 Baseline selesai | `features/indicators.py` (SMA/EMA/RSI/ATR), self-check lolos, jalan di data real XAUUSD |
 | 3. Model ML | 🟡 Baseline kode siap, belum dilatih di data real | `model/baseline.py` (GradientBoostingClassifier, scikit-learn), self-check lolos — **belum dilatih**, data baru mulai ngumpul lagi di mesin ini sejak 2026-10-16 (lihat Insiden), masih jauh di bawah ambang 50 baris berlabel |
 | 4. Rule layer | 🟡 Baseline jalan (1 dari 3 filter) | `rules/signal_filter.py` — jam trading jalan (self-check lolos), trend & news filter belum (prasyarat data belum ada) |
-| 5. Eksekusi order otomatis | 🟡 Infra siap, belum dipakai | `execution/broker_base.py`, `execution/file_bridge_adapter.py` — belum ada pemanggil dari logika trading nyata |
+| 5. Eksekusi order otomatis | 🟡 Wiring jalan, belum ada sinyal nyata | `core/pipeline.py` nyambungin rules→risk→`ShadowGuard`→`execution/`, self-check lolos pakai direction sintetis — belum pernah jalan dari output `model/` asli (model belum terlatih) |
 | 6. Risk & position sizing | 🟡 Position sizing jalan | `risk/position_sizing.py`, self-check lolos — `pip_value_per_lot` masih parameter manual, belum di-lookup dari broker; drawdown tiering (`NORMAL→CAUTION→REDUCED_RISK→HALT`) masih belum diimplementasi |
 | 7. Auto-retrain loop | ❌ Belum mulai | — |
 
@@ -24,7 +24,7 @@ Dashboard ringkas — bukan proses approval berlapis kayak plutoo (proyek solo, 
 |---|---|---|
 | Bridge MT5 ↔ Python | ✅ Selesai | `mql5/EADayenBridge.mq5` v1.01, 8 simbol live, lihat `local-setup.md` |
 | Decision log immutable | ✅ Selesai | `core/decision_log.py`, self-check lolos |
-| Gate SHADOW → LIVE | ✅ Selesai | `execution/shadow_guard.py`, self-check lolos (belum pernah dites di alur trading nyata karena belum ada sinyal) |
+| Gate SHADOW → LIVE | ✅ Selesai | `execution/shadow_guard.py`, self-check lolos, dites end-to-end via `core/pipeline.py` (masih sinyal sintetis — belum ada sinyal dari model asli) |
 | Repo + CI manual | ✅ Selesai | [github.com/henry1224/EA-DAYEN](https://github.com/henry1224/EA-DAYEN), self-check dijalankan manual tiap perubahan (belum ada CI otomatis — belum perlu di skala ini) |
 | Dashboard status data (lokal) | ✅ Selesai | `data/status.py` → `data_store/status.html`, auto-refresh, file lokal murni |
 
@@ -43,8 +43,7 @@ Dashboard ringkas — bukan proses approval berlapis kayak plutoo (proyek solo, 
 1. ~~Jalankan `data/poll_bridge.py`~~ — **selesai 2026-10-16**, 8 proses jalan background di mesin ini.
 2. Biarkan poller jalan beberapa hari — kumpulkan histori cukup buat training & backtest yang bermakna (baru ~51 baris per simbol per 2026-10-16, butuh jauh lebih banyak).
 3. Latih `model/baseline.py` di data real (`python3 -m model.baseline --symbol <SIMBOL> --timeframe M5`) + protokol backtest (manifest hash, time-split — terdokumentasi di `ml-strategy.md`, belum diimplementasi).
-5. Bangun `rules/` (filter sinyal ML).
-6. Bangun `risk/` (position sizing dari formula di `risk-management.md`).
-7. Sambungkan semuanya ke `execution/` lewat `ShadowGuard` — mulai SHADOW, bukan LIVE.
-8. **Tambah panel posisi/order terbuka ke dashboard** — ditunda sampai poin 7 jalan (sebelum itu gak ada order dari sistem buat ditampilkan). Perlu perluas bridge (snapshot akun + posisi), bukan cuma data harga.
-9. Evaluasi hasil SHADOW terhadap kriteria di `prd.md` § Kriteria Keluar Fase SHADOW sebelum pertimbangkan LIVE.
+4. ~~Bangun `rules/`~~, ~~Bangun `risk/`~~, ~~Sambungkan ke `execution/` lewat `ShadowGuard`~~ — **selesai 2026-10-16** (`rules/signal_filter.py`, `risk/position_sizing.py`, `core/pipeline.py`), tapi masih pakai sinyal sintetis — poin 3 di atas tetap blocker buat sinyal nyata.
+5. Setelah model terlatih: ganti direction sintetis di `core/pipeline.py` jadi output `model/baseline.py` asli, jalankan SHADOW betulan dari data live.
+6. **Tambah panel posisi/order terbuka ke dashboard** — ditunda sampai poin 5 jalan (sebelum itu gak ada order dari sistem buat ditampilkan). Perlu perluas bridge (snapshot akun + posisi), bukan cuma data harga.
+7. Evaluasi hasil SHADOW terhadap kriteria di `prd.md` § Kriteria Keluar Fase SHADOW sebelum pertimbangkan LIVE.
