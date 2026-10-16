@@ -15,7 +15,7 @@ Dashboard ringkas — bukan proses approval berlapis kayak plutoo (proyek solo, 
 | 3. Model ML | 🟡 Baseline kode siap, belum dilatih di data real | `model/baseline.py` (GradientBoostingClassifier, scikit-learn), self-check lolos — **belum dilatih**, data baru mulai ngumpul lagi di mesin ini sejak 2026-10-16 (lihat Insiden), masih jauh di bawah ambang 50 baris berlabel |
 | 4. Rule layer | 🟡 Baseline jalan (1 dari 3 filter) | `rules/signal_filter.py` — jam trading jalan (self-check lolos), trend & news filter belum (prasyarat data belum ada) |
 | 5. Eksekusi order otomatis | 🟡 Infra siap, belum dipakai | `execution/broker_base.py`, `execution/file_bridge_adapter.py` — belum ada pemanggil dari logika trading nyata |
-| 6. Risk & position sizing | ❌ Belum mulai (kerangka formula ada di `risk-management.md`) | — |
+| 6. Risk & position sizing | 🟡 Position sizing jalan | `risk/position_sizing.py`, self-check lolos — `pip_value_per_lot` masih parameter manual, belum di-lookup dari broker; drawdown tiering (`NORMAL→CAUTION→REDUCED_RISK→HALT`) masih belum diimplementasi |
 | 7. Auto-retrain loop | ❌ Belum mulai | — |
 
 ## Infrastruktur Pendukung

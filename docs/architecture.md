@@ -38,7 +38,7 @@ Broker API (histori + live tick)
 | `core/` (decision log) | ✅ Jalan | `core/decision_log.py` |
 | `model/` | 🟡 Baseline jalan | `model/baseline.py` — GradientBoostingClassifier, belum pernah dilatih di data real (belum ada data terkumpul, lihat `status.md`) |
 | `rules/` | 🟡 Baseline jalan (1 dari 3 filter) | `rules/signal_filter.py` — jam trading jalan, trend & news filter belum (butuh data multi-timeframe & news calendar yang belum ada, lihat `ml-strategy.md` § Rule Layer) |
-| `risk/` | ❌ Belum ada | — |
+| `risk/` | 🟡 Position sizing jalan | `risk/position_sizing.py` — formula sesuai `risk-management.md`, self-check lolos; `pip_value_per_lot` sengaja jadi parameter wajib (lihat § ponytail di file), belum di-lookup dari broker |
 | `retrain/` | ❌ Belum ada | — |
 
 "Jalan" berarti ada kode + self-check lolos, bukan berarti dipakai di alur trading nyata — belum ada `model/`/`rules/` yang memanggil `execution/`, jadi belum ada sinyal trading sungguhan yang dieksekusi (lihat `prd.md` § Posisi dalam Quant Trading).

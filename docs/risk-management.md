@@ -4,6 +4,8 @@
 
 Lot size dihitung dari persentase equity/balance, bukan nilai fixed — menyesuaikan modal yang berubah dan volatilitas instrumen.
 
+**Implementasi**: `risk/position_sizing.py` (`stop_distance_from_atr`, `calc_lot_size`), self-check lolos. `pip_value_per_lot` sengaja jadi parameter wajib (bukan tabel per-simbol di kode) — nilainya beda per instrumen (XAUUSD vs pair USD-quote vs JPY vs pair USD-base) dan buat pair non-USD-quote tergantung rate live; sumber yang benar adalah spec simbol dari broker (MT5 `SymbolInfoDouble`), belum ada jalur buat itu di `BrokerAdapter`. `risk_pct` dan ATR multiplier juga wajib eksplisit dari caller, gak ada default — angka final masih menyusul.
+
 **Formula kerangka** (angka `risk_pct` final menyusul setelah backtest, strukturnya sudah pasti):
 
 ```text
