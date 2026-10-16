@@ -37,7 +37,7 @@ Broker API (histori + live tick)
 | `execution/` (shadow gate) | ✅ Jalan | `execution/shadow_guard.py` |
 | `core/` (decision log) | ✅ Jalan | `core/decision_log.py` |
 | `model/` | 🟡 Baseline jalan | `model/baseline.py` — GradientBoostingClassifier, belum pernah dilatih di data real (belum ada data terkumpul, lihat `status.md`) |
-| `rules/` | ❌ Belum ada | — |
+| `rules/` | 🟡 Baseline jalan (1 dari 3 filter) | `rules/signal_filter.py` — jam trading jalan, trend & news filter belum (butuh data multi-timeframe & news calendar yang belum ada, lihat `ml-strategy.md` § Rule Layer) |
 | `risk/` | ❌ Belum ada | — |
 | `retrain/` | ❌ Belum ada | — |
 

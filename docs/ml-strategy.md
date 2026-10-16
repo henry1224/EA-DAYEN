@@ -43,10 +43,10 @@ Model baru **tidak otomatis menggantikan** model aktif hanya karena lebih komple
 
 ## Rule Layer
 
-Filter sinyal ML sebelum eksekusi:
-- Trend filter (hanya entry searah trend timeframe lebih tinggi).
-- Jam trading (hindari sesi low-liquidity).
-- News filter (hindari entry di sekitar rilis data besar).
+Filter sinyal ML sebelum eksekusi (implementasi: `rules/signal_filter.py`):
+- ✅ **Jam trading** — filter `quiet_hours`, cuma butuh timestamp candle sendiri. Jam low-liquidity spesifik **belum ditentukan** (butuh backtest buat tau sesi mana yang beneran merugikan di 8 simbol ini) — default kosong (gak filter apapun), jangan tebak angka tanpa bukti.
+- ❌ **Trend filter** (hanya entry searah trend timeframe lebih tinggi) — butuh data multi-timeframe (H1/H4), belum ada (`features/` baru hasilkan M5).
+- ❌ **News filter** (hindari entry di sekitar rilis data besar) — butuh sumber economic calendar, belum ada integrasinya di `data/`.
 
 ## Validasi
 
